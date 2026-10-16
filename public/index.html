@@ -3,16 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FO Field Manager - Cloud & Auth</title>
+    <title>FO Field Manager - Device Connection Summary Popup</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        #app-container { display: flex; width: 100vw; height: 100vh; }
-        #sidebar { width: 480px; min-width: 480px; background: #fdfdfd; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; z-index: 1000; height: 100%; }
-        #map { flex-grow: 1; height: 100%; width: 100%; cursor: grab; }
+        html, body { 
+            width: 100%; 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif; 
+        }
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+        #sidebar { 
+            width: 480px; 
+            min-width: 480px;
+            background: #fdfdfd; 
+            border-right: 1px solid #ddd; 
+            padding: 20px; 
+            overflow-y: auto; 
+            z-index: 1000; 
+            height: 100%;
+        }
+        #map { 
+            flex-grow: 1; 
+            height: 100%; 
+            width: 100%;
+            cursor: grab; 
+        }
         #map:active { cursor: grabbing; }
-        h2 { margin-top: 0; color: #004080; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h2 { margin-top: 0; color: #004080; font-size: 20px; }
         h4 { margin-bottom: 8px; color: #333; border-bottom: 2px solid #004080; padding-bottom: 4px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: bold; font-size: 12px; margin-bottom: 4px; color: #555; }
@@ -41,72 +66,28 @@
         .search-source-input { font-size: 11px; padding: 4px; margin-bottom: 3px; background: #fffbe6; }
         .stacked-item { background: #fff; border: 1px solid #ccc; padding: 8px; margin-bottom: 8px; border-radius: 4px; max-height: 280px; overflow-y: auto; text-align: left; }
         .connection-summary { font-size: 10px; background: #f1f3f5; padding: 6px; border-radius: 4px; margin-top: 4px; border-left: 3px solid #004080; }
-        .user-badge { font-size: 11px; background: #e2e8f0; padding: 3px 8px; border-radius: 12px; color: #333; font-weight: normal; }
         hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
 
-        @keyframes dashFlow { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
-        .animated-trace-line { animation: dashFlow 1s linear infinite; }
-        .dimmed-cable { opacity: 0.15 !important; }
+        @keyframes dashFlow {
+            from { stroke-dashoffset: 30; }
+            to { stroke-dashoffset: 0; }
+        }
+        .animated-trace-line {
+            animation: dashFlow 1s linear infinite;
+        }
+        .dimmed-cable {
+            opacity: 0.15 !important;
+        }
     </style>
 </head>
 <body>
 
     <div id="app-container">
-        <!-- SIDEBAR LOGIN -->
-        <div id="sidebar" style="display: flex; flex-direction: column; justify-content: center; align-items: center;" id="loginPanel">
-            <div style="width: 100%; max-width: 320px; background: #fff; padding: 25px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <h2 style="color: #004080; text-align: center; margin-bottom: 20px;">FO Login</h2>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" id="loginUser" required placeholder="admin">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPass" required placeholder="admin123">
-                    </div>
-                    <button type="submit" class="btn-success" style="margin-top: 10px;">Masuk ke Aplikasi</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- SIDEBAR UTAMA APLIKASI -->
-        <div id="mainAppSidebar" style="display: none;" id="sidebar">
-            <h2>
-                <span>FO Field Manager</span>
-                <span id="userInfoBadge" class="user-badge">Role: -</span>
-            </h2>
+        <div id="sidebar">
+            <h2>FO Field Manager</h2>
             
-            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                <button type="button" class="btn-danger" onclick="logoutUser()" style="margin-top: 0; font-size: 12px; padding: 6px;">🚪 Keluar (Logout)</button>
-                <button type="button" id="registerMenuBtn" class="btn-warning" onclick="toggleRegisterForm()" style="margin-top: 0; font-size: 12px; padding: 6px; display:none; color:#000;">➕ Buat Akun</button>
-            </div>
-
-            <!-- FORM REGISTER USER BARU (KHUSUS ADMIN) -->
-            <div id="registerFormContainer" class="section-box" style="display: none; border-color: #ffc107;">
-                <h4 style="color: #b38600;">Pendaftaran Akun Baru</h4>
-                <form id="registerForm">
-                    <div class="form-group">
-                        <label>Username Baru</label>
-                        <input type="text" id="regUser" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="regPass" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Hak Akses (Role)</label>
-                        <select id="regRole">
-                            <option value="technician">Teknisi (Hanya Lihat & Lacak)</option>
-                            <option value="admin">Admin (Full Kontrol)</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-success">Simpan Akun Baru</button>
-                </form>
-            </div>
-
             <div class="hint" id="modeHint">
-                📍 <b>Info:</b> Arahkan kursor ke perangkat atau jalur kabel untuk info singkat, klik untuk detail.
+                📍 <b>Info:</b> Arahkan kursor ke perangkat atau jalur kabel untuk info singkat, klik untuk menu Edit & Detail Tube/Core.
             </div>
 
             <div class="form-group">
@@ -195,7 +176,7 @@
                             <table class="core-table">
                                <thead>
                                     <tr>
-                                        <th>Tube / Core</th>
+                                        <th>Tube / Core (Ketik Manual)</th>
                                         <th>Status & Tujuan</th>
                                         <th>Pilih & Cari Hulu</th>
                                         <th>Aksi</th>
@@ -207,8 +188,8 @@
                         <button type="button" class="btn-warning" onclick="addCoreRow()" style="margin-top: 5px; font-size: 11px; padding: 5px;">+ Tambah Baris Core</button>
                     </div>
 
-                    <button type="submit" class="btn-success admin-action-btn">Simpan Perubahan</button>
-                    <button type="button" class="btn-danger admin-action-btn" onclick="deleteCurrentDevice()" style="margin-top: 5px;">🗑️ Hapus Perangkat Ini</button>
+                    <button type="submit" class="btn-success">Simpan Perubahan</button>
+                    <button type="button" class="btn-danger" onclick="deleteCurrentDevice()" style="margin-top: 5px;">🗑️ Hapus Perangkat Ini</button>
                     <button type="button" class="btn-warning" onclick="cancelEdit()" style="margin-top: 5px; color:#000;">Tutup</button>
                 </form>
             </div>
@@ -229,8 +210,8 @@
                             <option value="9">9. Kuning</option><option value="10">10. Ungu</option><option value="11">11. Pink</option><option value="12">12. Toska</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-success admin-action-btn">Simpan Perubahan Kabel</button>
-                    <button type="button" class="btn-danger admin-action-btn" onclick="deleteCurrentCable()" style="margin-top: 5px;">🗑️ Hapus Jalur Kabel Ini</button>
+                    <button type="submit" class="btn-success">Simpan Perubahan Kabel</button>
+                    <button type="button" class="btn-danger" onclick="deleteCurrentCable()" style="margin-top: 5px;">🗑️ Hapus Jalur Kabel Ini</button>
                     <button type="button" class="btn-warning" onclick="cancelEditCable()" style="margin-top: 5px; color:#000;">Tutup</button>
                 </form>
             </div>
@@ -254,7 +235,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Pilih Tube & Core Hilir (Warna Mengikuti Ini)</label>
+                        <label>Pilih Tube & Core Hilir (Warna Kabel Mengikuti Ini)</label>
                         <select id="cableDestCore" onchange="previewCoreCableColor()"></select>
                     </div>
 
@@ -268,25 +249,24 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Titik Jalur Terpilih</label>
+                        <label>Titik Jalur Terpilih (Klik Ikon/Peta/Jalur)</label>
                         <input type="text" id="cablePointsInfo" readonly value="0 titik dipilih (Klik peta secara manual)">
                     </div>
 
                     <button type="button" class="btn-danger" onclick="resetCurrentCable()">Reset Titik</button>
-                    <button type="submit" class="btn-success admin-action-btn" style="margin-top: 5px;" id="saveCableBtn" disabled>💾 Simpan Jalur ke Peta</button>
+                    <button type="submit" class="btn-success" style="margin-top: 5px;" id="saveCableBtn" disabled>💾 Simpan Jalur ke Peta</button>
                 </form>
             </div>
 
-            <div id="adminResetContainer">
-                <hr>
-                <h4>Google Earth & Reset Peta</h4>
-                <button type="button" class="btn-danger admin-action-btn" onclick="resetEntireMap()" style="margin-bottom: 10px;">🗑️ Reset / Kosongkan Seluruh Peta</button>
-                <form id="importForm" style="margin-bottom: 10px;">
-                    <div class="form-group"><input type="file" id="kmlFile" accept=".kml" required></div>
-                    <button type="submit" class="btn-success admin-action-btn">Upload & Import KML Baru</button>
-                </form>
-                <button type="button" class="btn-warning" onclick="window.location.href='/api/export-kml'">Download File KML</button>
-            </div>
+            <hr>
+            <h4>Google Earth & Reset Peta</h4>
+            <button type="button" class="btn-danger" onclick="resetEntireMap()" style="margin-bottom: 10px;">🗑️ Reset / Kosongkan Seluruh Peta</button>
+
+            <form id="importForm" style="margin-bottom: 10px;">
+                <div class="form-group"><input type="file" id="kmlFile" accept=".kml" required></div>
+                <button type="submit" class="btn-success">Upload & Import KML Baru</button>
+            </form>
+            <button type="button" class="btn-warning" onclick="window.location.href='/api/export-kml'">Download File KML</button>
         </div>
 
         <div id="map"></div>
@@ -313,9 +293,18 @@
             { name: 'Ujung Kabel', badge: 'END', color: '#343a40', hasCore: false }
         ];
 
-        const map = L.map('map', { dragging: true, touchZoom: true, scrollWheelZoom: true }).setView([-2.54893, 118.01486], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-        setTimeout(() => map.invalidateSize(), 300);
+        const map = L.map('map', {
+            dragging: true,
+            touchZoom: true,
+            scrollWheelZoom: true
+        }).setView([-2.54893, 118.01486], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        setTimeout(function() { map.invalidateSize(); }, 300);
 
         let markersLayer = L.layerGroup().addTo(map);
         let cablesLayer = L.layerGroup().addTo(map);
@@ -326,113 +315,50 @@
         let finalRoutedCoordinates = [];
         let allDevicesCache = [];
         let allCablesCache = [];
-        let currentUser = null;
-
-        // Cek Auth saat pertama kali dimuat
-        async function checkAuthStatus() {
-            try {
-                let res = await fetch('/api/auth/me');
-                let data = await res.json();
-                if (data.loggedIn) {
-                    currentUser = data;
-                    document.getElementById('loginPanel').style.display = 'none';
-                    document.getElementById('mainAppSidebar').style.display = 'block';
-                    document.getElementById('userInfoBadge').innerText = `User: ${currentUser.username} (${currentUser.role})`;
-                    
-                    if (currentUser.role === 'admin') {
-                        document.getElementById('registerMenuBtn').style.display = 'block';
-                    } else {
-                        // Sembunyikan fungsi tulis bagi teknisi
-                        document.querySelectorAll('.admin-action-btn').forEach(el => el.style.display = 'none');
-                    }
-                    loadData();
-                } else {
-                    document.getElementById('loginPanel').style.display = 'flex';
-                    document.getElementById('mainAppSidebar').style.display = 'none';
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            let username = document.getElementById('loginUser').value;
-            let password = document.getElementById('loginPass').value;
-
-            let res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            let result = await res.json();
-            if (result.success) {
-                checkAuthStatus();
-            } else {
-                alert(result.message);
-            }
-        });
-
-        function logoutUser() {
-            fetch('/api/auth/logout', { method: 'POST' }).then(() => {
-                currentUser = null;
-                checkAuthStatus();
-            });
-        }
-
-        function toggleRegisterForm() {
-            let container = document.getElementById('registerFormContainer');
-            container.style.display = container.style.display === 'none' ? 'block' : 'none';
-        }
-
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            let username = document.getElementById('regUser').value;
-            let password = document.getElementById('regPass').value;
-            let role = document.getElementById('regRole').value;
-
-            let res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, role })
-            });
-            let result = await res.json();
-            alert(result.message);
-            if (result.success) {
-                document.getElementById('regUser').value = '';
-                document.getElementById('regPass').value = '';
-                toggleRegisterForm();
-            }
-        });
+        let gpsMarker = null;
 
         function resetEntireMap() {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin.'); return; }
             if (confirm('PERINGATAN: Semua perangkat dan jalur kabel di peta akan dihapus bersih! Lanjutkan?')) {
                 fetch('/api/reset-map', { method: 'DELETE' })
                     .then(res => res.json())
-                    .then(result => { if (result.success) { alert('Peta berhasil dikosongkan!'); loadData(); } });
+                    .then(result => {
+                        if (result.success) {
+                            alert('Peta berhasil dikosongkan!');
+                            loadData();
+                        }
+                    });
             }
         }
 
         function deleteCurrentDevice() {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin.'); return; }
             const id = document.getElementById('editId').value;
             const name = document.getElementById('editName').value;
             if (confirm(`Hapus perangkat "${name}" dari peta?`)) {
                 fetch(`/api/devices/${id}`, { method: 'DELETE' })
                     .then(res => res.json())
-                    .then(result => { if (result.success) { alert('Perangkat berhasil dihapus!'); cancelEdit(); loadData(); } });
+                    .then(result => {
+                        if (result.success) {
+                            alert('Perangkat berhasil dihapus!');
+                            cancelEdit();
+                            loadData();
+                        }
+                    });
             }
         }
 
         function deleteCurrentCable() {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin.'); return; }
             const id = document.getElementById('editCableId').value;
             const name = document.getElementById('editCableName').value;
             if (confirm(`Hapus jalur kabel "${name}" dari peta?`)) {
                 fetch(`/api/cables/${id}`, { method: 'DELETE' })
                     .then(res => res.json())
-                    .then(result => { if (result.success) { alert('Jalur kabel berhasil dihapus!'); cancelEditCable(); loadData(); } });
+                    .then(result => {
+                        if (result.success) {
+                            alert('Jalur kabel berhasil dihapus!');
+                            cancelEditCable();
+                            loadData();
+                        }
+                    });
             }
         }
 
@@ -440,25 +366,29 @@
             let optionsHTML = deviceTypes.map(dt => `<option value="${dt.name}">${dt.name} (${dt.badge})</option>`).join('');
             const editTypeSelect = document.getElementById('editType');
             if(editTypeSelect) editTypeSelect.innerHTML = optionsHTML;
+
             const addCoordTypeSelect = document.getElementById('addCoordType');
             if(addCoordTypeSelect) addCoordTypeSelect.innerHTML = optionsHTML;
+
             const listEl = document.getElementById('customTypeList');
             if(listEl) {
-                listEl.innerHTML = `<b>Jenis Terdaftar:</b><br>` + deviceTypes.map(dt => `<span style="display:inline-block; background:${dt.color}; color:white; padding:2px 6px; border-radius:4px; margin:2px;">${dt.badge}: ${dt.name}</span>`).join('');
+                listEl.innerHTML = `<b>Jenis Terdaftar:</b><br>` + deviceTypes.map(dt => `<span style="display:inline-block; background:${dt.color}; color:white; padding:2px 6px; border-radius:4px; margin:2px;">${dt.badge}: ${dt.name} ${dt.hasCore?'(Core)':'(Ikon Saja)'}</span>`).join('');
             }
         }
 
         function addNewDeviceType() {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
             const name = document.getElementById('newTypeName').value.trim();
             const badge = document.getElementById('newTypeBadge').value.trim().toUpperCase();
             const color = document.getElementById('newTypeColor').value;
             const hasCore = document.getElementById('newTypeHasCore').checked;
+
             if(!name || !badge) { alert('Nama dan badge wajib diisi!'); return; }
+
             deviceTypes.push({ name, badge, color, hasCore });
             localStorage.setItem('fo_device_types_v2', JSON.stringify(deviceTypes));
             document.getElementById('newTypeName').value = '';
             document.getElementById('newTypeBadge').value = '';
+            document.getElementById('newTypeHasCore').checked = false;
             updateTypeDropdowns();
             alert(`Jenis "${name}" berhasil ditambahkan!`);
         }
@@ -466,14 +396,20 @@
         function switchMode() {
             currentMode = document.getElementById('appMode').value;
             const hint = document.getElementById('modeHint');
+            
             document.getElementById('formCableContainer').style.display = 'none';
             document.getElementById('formTraceContainer').style.display = 'none';
             document.getElementById('formCustomTypeContainer').style.display = 'none';
-            cancelEdit(); cancelEditCable(); cancelAddAtCoord();
+            cancelEdit();
+            cancelEditCable();
+            cancelAddAtCoord();
 
             highlightLayer.clearLayers();
             cablesLayer.eachLayer(layer => {
-                if (layer.getElement) layer.getElement().classList.remove('dimmed-cable');
+                if (layer.getElement) {
+                    let el = layer.getElement();
+                    if (el) el.classList.remove('dimmed-cable');
+                }
             });
 
             if(currentMode === 'point') {
@@ -481,11 +417,12 @@
                 resetCurrentCable();
             } else if(currentMode === 'cable') {
                 document.getElementById('formCableContainer').style.display = 'block';
-                hint.innerHTML = '⚡ <b>Mode Tarik Kabel:</b> Pilih perangkat hulu & hilir, lalu klik titik peta secara manual.';
-                setupCableCoreDropdowns(); resetCurrentCable();
+                hint.innerHTML = '⚡ <b>Mode Tarik Kabel:</b> Pilih perangkat hulu & hilir, lalu klik titik-titik peta secara manual.';
+                setupCableCoreDropdowns();
+                resetCurrentCable();
             } else if(currentMode === 'tracer') {
                 document.getElementById('formTraceContainer').style.display = 'block';
-                hint.innerHTML = '🔍 <b>Mode Tracer:</b> Lacak jalur core otomatis.';
+                hint.innerHTML = '🔍 <b>Mode Tracer:</b> Lacak jalur core otomatis. Jalur lain akan dibuat transparan otomatis.';
                 setupTraceDropdowns();
             } else if(currentMode === 'customType') {
                 document.getElementById('formCustomTypeContainer').style.display = 'block';
@@ -498,7 +435,9 @@
             const srcSelect = document.getElementById('cableSourceDev');
             const destSelect = document.getElementById('cableDestDev');
             let coreDevices = allDevicesCache.filter(d => d.details && d.details.hasCore);
+            
             let optionsHTML = coreDevices.length > 0 ? `<option value="">-- Pilih Perangkat --</option>` + coreDevices.map(d => `<option value="${d.id}">${d.name} (${d.type})</option>`).join('') : '<option value="">Tidak ada perangkat core</option>';
+            
             if(srcSelect) srcSelect.innerHTML = optionsHTML;
             if(destSelect) destSelect.innerHTML = optionsHTML;
             populateCableDestCores();
@@ -508,38 +447,51 @@
             const destDevId = document.getElementById('cableDestDev').value;
             const dev = allDevicesCache.find(d => d.id === destDevId);
             const coreSelect = document.getElementById('cableDestCore');
+            
             document.getElementById('cableDestDevIdVal').value = destDevId;
-            if (!dev || !dev.details || !dev.details.cores) { coreSelect.innerHTML = '<option value="">-- Pilih tube & core hilir --</option>'; previewCoreCableColor(); return; }
+
+            if (!dev || !dev.details || !dev.details.cores) { 
+                coreSelect.innerHTML = '<option value="">-- Pilih tube & core hilir --</option>'; 
+                previewCoreCableColor();
+                return; 
+            }
+            
             coreSelect.innerHTML = dev.details.cores.map((c, idx) => {
                 let colObj = foColors.find(col => col.id == c.colorId) || foColors[0];
                 let coreLabel = c.coreText || `Tube ${c.tube || 1}-Core ${c.core || 1}`;
                 return `<option value="${idx}" data-colorid="${c.colorId}" data-colorname="${colObj.name}" data-coretext="${coreLabel}" data-sourcedev="${c.sourceDevId || ''}">${coreLabel} (Warna: ${colObj.name})</option>`;
             }).join('');
+            
             previewCoreCableColor();
         }
 
         window.previewCoreCableColor = function() {
             const coreSelect = document.getElementById('cableDestCore');
             const selectedOpt = coreSelect.options[coreSelect.selectedIndex];
+            
             if (selectedOpt && selectedOpt.dataset && selectedOpt.dataset.colorid) {
                 let colId = selectedOpt.dataset.colorid;
                 let colName = selectedOpt.dataset.colorname;
                 let coreText = selectedOpt.dataset.coretext;
                 let srcDevFromCore = selectedOpt.dataset.sourcedev;
+
                 document.getElementById('cableColorIdVal').value = colId;
                 document.getElementById('cableColorNameDisplay').value = `Otomatis dari Hilir (${coreText} - ${colName})`;
                 document.getElementById('cableCoreTextVal').value = coreText;
+
                 if (srcDevFromCore) {
                     document.getElementById('cableSourceDev').value = srcDevFromCore;
                     document.getElementById('cableSourceDevIdVal').value = srcDevFromCore;
                 }
             } else {
                 document.getElementById('cableColorIdVal').value = 1;
-                document.getElementById('cableColorNameDisplay').value = 'Default: Biru';
+                document.getElementById('cableColorNameDisplay').value = 'Default: Biru (Tanpa Tube/Core Hilir Dipilih)';
                 document.getElementById('cableCoreTextVal').value = '';
             }
+
             const srcDevId = document.getElementById('cableSourceDev').value;
             document.getElementById('cableSourceDevIdVal').value = srcDevId;
+
             if (tempRoutePolyline) {
                 let colId = document.getElementById('cableColorIdVal').value;
                 let colObj = foColors.find(c => c.id == colId) || foColors[0];
@@ -548,21 +500,24 @@
         }
 
         map.on('click', function(e) {
-            const lat = e.latlng.lat; const lng = e.latlng.lng;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
             if (currentMode === 'point') {
-                if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin yang dapat menambah perangkat.'); return; }
                 let typeOptions = deviceTypes.map(dt => `<option value="${dt.name}">${dt.name}</option>`).join('');
                 let popupContent = `
                     <div style="text-align: center; min-width: 190px;">
-                        <b>Tambah Perangkat</b><br><span style="font-size:10px; color:#666;">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span><br><br>
-                        <select id="mapClickType" style="margin-bottom: 5px; font-size:12px; padding:3px;">${typeOptions}</select>
+                        <b>Tambah Perangkat / Penanda</b><br>
+                        <span style="font-size:10px; color:#666;">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span><br><br>
+                        <select id="mapClickType" style="margin-bottom: 5px; font-size:12px; padding:3px;">
+                            ${typeOptions}
+                        </select>
                         <input type="text" id="mapClickName" placeholder="Nama (Cth: ODP-01)" style="margin-bottom: 5px; font-size:12px; padding:3px; width:100%;">
                         <button onclick="saveDeviceFromMap(${lat}, ${lng})" style="background:#28a745; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px; font-weight:bold; width:100%;">Simpan</button>
                     </div>
                 `;
                 L.popup().setLatLng([lat, lng]).setContent(popupContent).openOn(map);
             } else if (currentMode === 'cable') {
-                if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin yang dapat menarik kabel.'); return; }
                 addCablePoint(lat, lng, 'Titik Peta');
             }
         });
@@ -570,23 +525,39 @@
         function addCablePoint(lat, lng, label) {
             tempCablePoints.push([lat, lng]);
             document.getElementById('cablePointsInfo').value = `${tempCablePoints.length} titik dipilih (${label})`;
+            
             L.circleMarker([lat, lng], { radius: 7, color: '#ff7f00', weight: 3, fillColor: '#ff7f00', fillOpacity: 0.8 }).addTo(highlightLayer);
-            if (tempCablePoints.length >= 2) fetchSequentialRoadRoute(tempCablePoints);
+
+            if (tempCablePoints.length >= 2) {
+                fetchSequentialRoadRoute(tempCablePoints);
+            }
         }
 
         function findNearestPointOnCables(clickLat, clickLng) {
-            let nearestPoint = null; let minDistance = Infinity;
+            let nearestPoint = null;
+            let minDistance = Infinity;
+
             allCablesCache.forEach(cable => {
                 let pts = cable.points;
                 if (!pts || pts.length < 2) return;
+
                 for (let i = 0; i < pts.length - 1; i++) {
-                    let p1 = pts[i]; let p2 = pts[i+1];
+                    let p1 = pts[i];
+                    let p2 = pts[i+1];
                     let proj = getClosestPointOnSegment([clickLat, clickLng], p1, p2);
                     let dist = Math.hypot(proj[0] - clickLat, proj[1] - clickLng);
-                    if (dist < minDistance) { minDistance = dist; nearestPoint = proj; }
+
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestPoint = proj;
+                    }
                 }
             });
-            return minDistance < 0.0003 ? nearestPoint : null;
+
+            if (minDistance < 0.0003) {
+                return nearestPoint;
+            }
+            return null;
         }
 
         function getClosestPointOnSegment(p, a, b) {
@@ -601,73 +572,114 @@
             let fullRoute = [];
             try {
                 for (let i = 0; i < points.length - 1; i++) {
-                    let start = points[i]; let end = points[i + 1];
+                    let start = points[i];
+                    let end = points[i + 1];
                     let url = `https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
-                    let res = await fetch(url); let data = await res.json();
+                    
+                    let res = await fetch(url);
+                    let data = await res.json();
                     if (data.routes && data.routes.length > 0) {
                         let coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                         if (i > 0) coords.shift();
                         fullRoute = fullRoute.concat(coords);
-                    } else { fullRoute.push(start, end); }
+                    } else {
+                        fullRoute.push(start, end);
+                    }
                 }
                 finalRoutedCoordinates = fullRoute;
                 if (tempRoutePolyline) map.removeLayer(tempRoutePolyline);
+
                 let colId = document.getElementById('cableColorIdVal').value;
                 let colObj = foColors.find(c => c.id == colId) || foColors[0];
+
                 tempRoutePolyline = L.polyline(finalRoutedCoordinates, { color: colObj.hex, weight: 6, opacity: 0.9 }).addTo(map);
                 document.getElementById('saveCableBtn').disabled = false;
-            } catch (err) { console.error(err); alert('Gagal mengambil rute jalan.'); }
+            } catch (err) {
+                console.error(err);
+                alert('Gagal mengambil rute jalan.');
+            }
         }
 
         function resetCurrentCable() {
-            tempCablePoints = []; finalRoutedCoordinates = [];
+            tempCablePoints = [];
+            finalRoutedCoordinates = [];
             if (tempRoutePolyline) { map.removeLayer(tempRoutePolyline); tempRoutePolyline = null; }
             highlightLayer.clearLayers();
-            document.getElementById('cablePointsInfo').value = '0 titik dipilih';
+            document.getElementById('cablePointsInfo').value = '0 titik dipilih (Klik peta secara manual)';
             document.getElementById('saveCableBtn').disabled = true;
         }
 
         window.saveDeviceFromMap = function(lat, lng) {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
             const name = document.getElementById('mapClickName').value;
             const type = document.getElementById('mapClickType').value;
             if (!name) { alert('Masukkan nama perangkat!'); return; }
+
             let dtConfig = deviceTypes.find(dt => dt.name === type);
             let hasCore = dtConfig ? dtConfig.hasCore : true;
+
+            const payload = {
+                name, type, lat, lng,
+                details: { 
+                    hasCore: hasCore,
+                    cores: hasCore ? [{ coreText: 'Tube 1 - Core 1', colorId: 1, status: 'Active', target: 'Initial', sourceDevId: '' }] : [] 
+                }
+            };
 
             fetch('/api/devices', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, type, lat, lng, details: { hasCore, cores: hasCore ? [{ coreText: 'Tube 1 - Core 1', colorId: 1, status: 'Active', target: 'Initial', sourceDevId: '' }] : [] } })
-            }).then(res => res.json()).then(result => { if(result.success) { alert('Berhasil disimpan!'); map.closePopup(); loadData(); } });
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(result => {
+                if(result.success) { alert('Berhasil disimpan!'); map.closePopup(); loadData(); }
+            });
         }
 
         window.openAddAtCoordModal = function(lat, lng) {
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak! Hanya Admin.'); return; }
-            cancelEdit(); cancelEditCable(); updateTypeDropdowns();
-            document.getElementById('addLat').value = lat; document.getElementById('addLng').value = lng;
+            cancelEdit();
+            cancelEditCable();
+            updateTypeDropdowns();
+            document.getElementById('addLat').value = lat;
+            document.getElementById('addLng').value = lng;
             document.getElementById('addCoordName').value = '';
             document.getElementById('formAddAtCoordContainer').style.display = 'block';
             map.closePopup();
         }
 
-        function cancelAddAtCoord() { document.getElementById('formAddAtCoordContainer').style.display = 'none'; }
+        function cancelAddAtCoord() {
+            document.getElementById('formAddAtCoordContainer').style.display = 'none';
+        }
 
         document.getElementById('addAtCoordForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
             const lat = parseFloat(document.getElementById('addLat').value);
             const lng = parseFloat(document.getElementById('addLng').value);
             const name = document.getElementById('addCoordName').value.trim();
             const type = document.getElementById('addCoordType').value;
+
+            if (!name) { alert('Nama perangkat wajib diisi!'); return; }
+
             let dtConfig = deviceTypes.find(dt => dt.name === type);
             let hasCore = dtConfig ? dtConfig.hasCore : true;
+
+            const payload = {
+                name, type, lat, lng,
+                details: { 
+                    hasCore: hasCore,
+                    cores: hasCore ? [{ coreText: 'Tube 1 - Core 1', colorId: 1, status: 'Active', target: 'Initial', sourceDevId: '' }] : [] 
+                }
+            };
 
             fetch('/api/devices', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, type, lat, lng, details: { hasCore, cores: hasCore ? [{ coreText: 'Tube 1 - Core 1', colorId: 1, status: 'Active', target: 'Initial', sourceDevId: '' }] : [] } })
-            }).then(res => res.json()).then(result => { if(result.success) { alert('Berhasil!'); cancelAddAtCoord(); loadData(); } });
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(result => {
+                if(result.success) { 
+                    alert('Perangkat baru berhasil ditambahkan di koordinat ini!'); 
+                    cancelAddAtCoord(); 
+                    loadData(); 
+                }
+            });
         });
 
         function loadData() {
@@ -676,7 +688,8 @@
                 .then(data => {
                     allDevicesCache = data.devices;
                     allCablesCache = data.cables || [];
-                    markersLayer.clearLayers(); cablesLayer.clearLayers();
+                    markersLayer.clearLayers();
+                    cablesLayer.clearLayers();
 
                     let deviceGroups = {};
                     data.devices.forEach(dev => {
@@ -687,8 +700,12 @@
 
                     Object.keys(deviceGroups).forEach(coordKey => {
                         let group = deviceGroups[coordKey];
-                        let firstDev = group[0]; let lat = firstDev.lat; let lng = firstDev.lng;
+                        let firstDev = group[0];
+                        let lat = firstDev.lat;
+                        let lng = firstDev.lng;
+
                         let dtConfig = deviceTypes.find(dt => dt.name === firstDev.type) || { badge: firstDev.type.substring(0,3).toUpperCase(), color: '#6c757d', hasCore: true };
+                        
                         let badgeText = group.length > 1 ? `${dtConfig.badge} (${group.length})` : dtConfig.badge;
                         let markerColor = group.length > 1 ? '#6f42c1' : dtConfig.color;
 
@@ -698,16 +715,19 @@
                             iconSize: [36, 36], iconAnchor: [18, 18]
                         });
 
-                        let tooltipHTML = group.length === 1 ? `<b>${firstDev.name}</b> (${firstDev.type})` : `<b>${group.length} Perangkat Tumpuk</b>`;
+                        let tooltipHTML = group.length === 1 
+                            ? `<b>${firstDev.name}</b> (${firstDev.type})` 
+                            : `<b>${group.length} Perangkat Tumpuk</b><br>` + group.map(d => `- ${d.name} (${d.type})`).join('<br>');
+
                         let popupHTML = `<div style="max-height: 280px; overflow-y: auto; min-width: 250px;">`;
                         popupHTML += `<b>📦 Total Perangkat: ${group.length}</b><br>`;
-                        if (currentUser?.role === 'admin') {
-                            popupHTML += `<button onclick="openAddAtCoordModal(${lat}, ${lng})" style="background:#28a745; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin:4px 0 6px 0;">➕ Tambah Perangkat Lagi di Sini</button>`;
-                        }
+                        popupHTML += `<button onclick="openAddAtCoordModal(${lat}, ${lng})" style="background:#28a745; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin:4px 0 6px 0;">➕ Tambah Perangkat Lagi di Sini</button>`;
                         popupHTML += `<hr style="margin:2px 0">`;
                         
                         group.forEach((dev, idx) => {
                             let isCoreDevice = dev.details && dev.details.hasCore !== undefined ? dev.details.hasCore : true;
+                            
+                            // Pindai kabel hilir yang terhubung ke perangkat ini
                             let connectedCablesAsDest = (allCablesCache || []).filter(c => c.details && c.details.destDevId === dev.id);
                             let destSummaryHTML = '';
                             if (connectedCablesAsDest.length > 0) {
@@ -718,106 +738,320 @@
                                     if (!groupedDest[srcName]) groupedDest[srcName] = [];
                                     if (c.details.coreText) groupedDest[srcName].push(c.details.coreText);
                                 });
-                                let destTextList = Object.keys(groupedDest).map(srcName => `<b>${srcName}</b> (${groupedDest[srcName].length} Core)`).join('<br>');
+                                
+                                let destTextList = Object.keys(groupedDest).map(srcName => {
+                                    let cores = groupedDest[srcName];
+                                    return `<b>${srcName}</b> (Menghubungkan ${cores.length} Core: ${cores.join(', ')})`;
+                                }).join('<br>');
+                                
                                 destSummaryHTML = `<div class="connection-summary"><b>🔗 Terhubung dari Hulu:</b><br>${destTextList}</div>`;
+                            }
+
+                            // Pindai kabel hulu yang keluar dari perangkat ini ke perangkat lain
+                            let connectedCablesAsSource = (allCablesCache || []).filter(c => c.details && c.details.sourceDevId === dev.id);
+                            let sourceSummaryHTML = '';
+                            if (connectedCablesAsSource.length > 0) {
+                                let groupedSource = {};
+                                connectedCablesAsSource.forEach(c => {
+                                    let destDev = allDevicesCache.find(d => d.id === c.details.destDevId);
+                                    let destName = destDev ? `${destDev.name} (${destDev.type})` : 'Hilir Lain';
+                                    if (!groupedSource[destName]) groupedSource[destName] = [];
+                                    if (c.details.coreText) groupedSource[destName].push(c.details.coreText);
+                                });
+
+                                let sourceTextList = Object.keys(groupedSource).map(destName => {
+                                    let cores = groupedSource[destName];
+                                    return `<b>${destName}</b> (${cores.length} Core tersambung)`;
+                                }).join('<br>');
+
+                                sourceSummaryHTML = `<div class="connection-summary" style="border-left-color: #28a745;"><b>🚀 Menyalurkan ke Hilir:</b><br>${sourceTextList}</div>`;
                             }
 
                             popupHTML += `<div class="stacked-item">`;
                             popupHTML += `<b>#${idx+1}: ${dev.name}</b> (${dev.type})<br>`;
+                            
                             if (isCoreDevice) {
                                 let coreSummary = (dev.details.cores || []).map((c, cIdx) => {
                                     let colObj = foColors.find(col => col.id == c.colorId) || foColors[0];
                                     let tubeCoreLabel = c.coreText || `Tube ${c.tube || 1}-Core ${c.core || 1}`;
-                                    let sourceInfo = c.sourceDevId ? ` ➔ <span style="color:#004080; font-weight:bold;">Hulu Terhubung</span>` : '';
+                                    
+                                    let sourceInfo = '';
+                                    if (c.sourceDevId) {
+                                        let srcDevObj = allDevicesCache.find(d => d.id === c.sourceDevId);
+                                        let srcName = srcDevObj ? `${srcDevObj.name} (${srcDevObj.type})` : 'Hulu Terhubung';
+                                        sourceInfo = ` ➔ <span style="color:#004080; font-weight:bold;">Hulu: ${srcName}</span>`;
+                                    }
+
                                     let traceBtn = c.sourceDevId ? ` <button onclick="panToSourceDevice('${dev.id}', ${cIdx})" style="background:${colObj.hex}; color:white; border:none; padding:1px 3px; font-size:8px; cursor:pointer; border-radius:2px;">🔍 Lacak</button>` : '';
-                                    return `<b>${tubeCoreLabel}</b> (<span style="color:${colObj.hex}; font-weight:bold;">${colObj.name}</span>): ${c.status}${sourceInfo}${traceBtn}`;
-                                }).join('<br>') || 'Belum ada data core';
+                                    
+                                    return `<b>${tubeCoreLabel}</b> (<span style="color:${colObj.hex}; font-weight:bold;">● Warna: ${colObj.name}</span>): ${c.status}${sourceInfo}${traceBtn}`;
+                                }).join('<br>') || 'Belum ada data tube/core';
+                                
                                 popupHTML += `<div style="font-size:10px; margin:4px 0;">${coreSummary}</div>`;
                                 popupHTML += destSummaryHTML;
+                                popupHTML += sourceSummaryHTML;
                             } else {
                                 popupHTML += `<span style="color:#666; font-size:10px;">Penanda Lapangan</span><br>`;
                             }
-                            popupHTML += `<button onclick="openEditModal('${dev.id}')" style="background:#004080; color:white; border:none; padding:3px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin-top:4px;">✏️ Detail & Edit</button>`;
+                            popupHTML += `<button onclick="openEditModal('${dev.id}')" style="background:#004080; color:white; border:none; padding:3px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin-top:4px;">✏️ Edit / Hapus Perangkat Ini</button>`;
                             popupHTML += `</div>`;
                         });
                         popupHTML += `</div>`;
 
-                        let marker = L.marker([lat, lng], { icon: customIcon }).bindTooltip(tooltipHTML).bindPopup(popupHTML);
+                        let marker = L.marker([lat, lng], { icon: customIcon })
+                            .bindTooltip(tooltipHTML, { permanent: false, direction: 'top', opacity: 0.9 })
+                            .bindPopup(popupHTML);
+
+                        marker.on('click', function(e) {
+                            if (currentMode === 'cable') {
+                                L.DomEvent.stopPropagation(e);
+                                addCablePoint(lat, lng, firstDev.name);
+                            }
+                        });
+
                         markersLayer.addLayer(marker);
                     });
 
+                    let cableGroups = {};
                     (data.cables || []).forEach(cable => {
                         let pts = cable.points;
                         if (!pts || pts.length === 0) return;
-                        let colId = cable.details && cable.details.colorId ? cable.details.colorId : 1;
-                        let colObj = foColors.find(c => c.id == colId) || foColors[0];
-                        let coreText = cable.details && cable.details.coreText ? cable.details.coreText : 'Core Utama';
-
-                        let cableTooltipHTML = `<b>⚡ ${cable.name}</b><br><span style="color:${colObj.hex}; font-weight:bold;">● ${colObj.name}</span>`;
-                        let cablePopupHTML = `<div style="padding:5px;"><b>⚡ ${cable.name}</b><br>Tube/Core: ${coreText}<br><button onclick="openEditCableModal('${cable.id}')" style="background:#0055ff; color:white; border:none; padding:3px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin-top:5px;">✏️ Edit Kabel</button></div>`;
-
-                        let polyline = L.polyline(cable.points, { color: colObj.hex, weight: 6, opacity: 0.8 })
-                            .bindTooltip(cableTooltipHTML).bindPopup(cablePopupHTML);
-                        cablesLayer.addLayer(polyline);
+                        let midPt = pts[Math.floor(pts.length / 2)];
+                        let cableKey = `${midPt[0].toFixed(3)},${midPt[1].toFixed(3)}`;
+                        if (!cableGroups[cableKey]) cableGroups[cableKey] = [];
+                        cableGroups[cableKey].push(cable);
                     });
 
-                    setTimeout(() => { map.invalidateSize(); setupTraceDropdowns(); setupCableCoreDropdowns(); }, 100);
+                    Object.keys(cableGroups).forEach(cableKey => {
+                        let group = cableGroups[cableKey];
+                        group.forEach((cable, cIdx) => {
+                            let colId = cable.details && cable.details.colorId ? cable.details.colorId : 1;
+                            let colObj = foColors.find(c => c.id == colId) || foColors[0];
+                            
+                            let srcDevObj = allDevicesCache.find(d => d.id === (cable.details && cable.details.sourceDevId));
+                            let destDevObj = allDevicesCache.find(d => d.id === (cable.details && cable.details.destDevId));
+                            
+                            let srcName = srcDevObj ? `${srcDevObj.name} (${srcDevObj.type})` : 'Belum diatur';
+                            let destName = destDevObj ? `${destDevObj.name} (${destDevObj.type})` : 'Belum diatur';
+                            let coreText = cable.details && cable.details.coreText ? cable.details.coreText : 'Core Utama';
+
+                            let cableTooltipHTML = `<b>⚡ ${cable.name}</b><br><span style="color:${colObj.hex}; font-weight:bold;">● Warna Kabel: ${colObj.name}</span><br><span style="font-size:10px;">Tube/Core: ${coreText}</span>`;
+
+                            let cablePopupHTML = `<div style="max-height: 260px; overflow-y: auto; min-width: 230px;">`;
+                            cablePopupHTML += `<b>⚡ Jalur Kabel (${group.length} Tumpuk):</b><hr style="margin:4px 0">`;
+                            
+                            group.forEach((cb, idx) => {
+                                let cbColor = foColors.find(c => c.id == (cb.details?.colorId || 1)) || foColors[0];
+                                let cbSrc = allDevicesCache.find(d => d.id === (cb.details && cb.details.sourceDevId));
+                                let cbDest = allDevicesCache.find(d => d.id === (cb.details && cb.details.destDevId));
+                                let cbCoreText = cb.details?.coreText || 'Tube 1 - Core 1';
+                                
+                                cablePopupHTML += `<div class="stacked-item">`;
+                                cablePopupHTML += `<b>#${idx+1}: ${cb.name}</b><br>`;
+                                cablePopupHTML += `<span style="font-size:10px; color:${cbColor.hex}; font-weight:bold;">● Warna Kabel: ${cbColor.name}</span><br>`;
+                                cablePopupHTML += `<div style="font-size:10px; background:#f1f3f5; padding:5px; margin-top:3px; border-radius:3px;">`;
+                                cablePopupHTML += `<b>🔗 Detail Tube, Core & Relasi:</b><br>`;
+                                cablePopupHTML += `• Perangkat Hulu: <b>${cbSrc ? cbSrc.name + ' ('+cbSrc.type+')' : 'Tidak diset'}</b><br>`;
+                                cablePopupHTML += `• Perangkat Hilir: <b>${cbDest ? cbDest.name + ' ('+cbDest.type+')' : 'Tidak diset'}</b><br>`;
+                                cablePopupHTML += `• Keterangan Tube & Core: <b style="color:#004080;">${cbCoreText}</b><br>`;
+                                cablePopupHTML += `• Warna Core: <span style="color:${cbColor.hex}; font-weight:bold;">● ${cbColor.name}</span>`;
+                                cablePopupHTML += `</div>`;
+                                cablePopupHTML += `<button onclick="openEditCableModal('${cb.id}')" style="background:#0055ff; color:white; border:none; padding:3px 8px; cursor:pointer; border-radius:3px; font-size:10px; width:100%; margin-top:5px;">✏️ Edit / Hapus Kabel Ini</button>`;
+                                cablePopupHTML += `</div>`;
+                            });
+                            cablePopupHTML += `</div>`;
+
+                            let polyline = L.polyline(cable.points, { color: colObj.hex, weight: 6 + (cIdx * 2), opacity: 0.8 })
+                                .bindTooltip(cableTooltipHTML, { permanent: false, direction: 'center', opacity: 0.9 })
+                                .bindPopup(cablePopupHTML);
+                            
+                            polyline.on('click', function(e) {
+                                if (currentMode === 'cable') {
+                                    L.DomEvent.stopPropagation(e);
+                                    let clickLat = e.latlng.lat;
+                                    let clickLng = e.latlng.lng;
+                                    let snapped = findNearestPointOnCables(clickLat, clickLng);
+                                    if (snapped) {
+                                        addCablePoint(snapped[0], snapped[1], 'Titik Kabel');
+                                    } else {
+                                        addCablePoint(clickLat, clickLng, 'Titik Peta');
+                                    }
+                                }
+                            });
+
+                            cablesLayer.addLayer(polyline);
+                        });
+                    });
+
+                    setTimeout(() => { 
+                        map.invalidateSize(); 
+                        setupTraceDropdowns(); 
+                        setupCableCoreDropdowns();
+                    }, 100);
                 });
         }
 
         window.panToSourceDevice = function(devId, coreIdx) {
             const currentDev = allDevicesCache.find(d => d.id === devId);
-            if (!currentDev || !currentDev.details || !currentDev.details.cores[coreIdx]) return;
+            if (!currentDev || !currentDev.details || !currentDev.details.cores || !currentDev.details.cores[coreIdx]) return;
+
             const selectedCore = currentDev.details.cores[coreIdx];
             const targetSourceDevId = selectedCore.sourceDevId;
-            if (!targetSourceDevId) { alert('Perangkat hulu belum diset.'); return; }
+
+            if (!targetSourceDevId) {
+                alert('Perangkat ini belum diset sumber hulunya pada tabel core!');
+                return;
+            }
+
             const sourceDev = allDevicesCache.find(d => d.id === targetSourceDevId);
-            if (!sourceDev) { alert('Perangkat sumber hulu tidak ditemukan.'); return; }
+            if (!sourceDev) {
+                alert('Perangkat sumber hulu tidak ditemukan!');
+                return;
+            }
 
             let colObj = foColors.find(col => col.id == selectedCore.colorId) || { hex: '#6f42c1', name: 'Ungu' };
+
             highlightLayer.clearLayers();
             map.setView([sourceDev.lat, sourceDev.lng], 18);
 
             cablesLayer.eachLayer(layer => {
-                if (layer.getElement) layer.getElement().classList.add('dimmed-cable');
+                if (layer.getElement) {
+                    let el = layer.getElement();
+                    if (el) el.classList.add('dimmed-cable');
+                }
             });
 
-            let fullRoutePoints = [[currentDev.lat, currentDev.lng], [sourceDev.lat, sourceDev.lng]];
-            let highlightCircle = L.circleMarker([sourceDev.lat, sourceDev.lng], { radius: 22, color: colObj.hex, weight: 5, fillColor: colObj.hex, fillOpacity: 0.5 }).addTo(highlightLayer);
-            let tracePolyline = L.polyline(fullRoutePoints, { color: colObj.hex, weight: 8, opacity: 1.0, dashArray: '15, 15', className: 'animated-trace-line' }).addTo(highlightLayer);
+            let fullRoutePoints = [];
+            let currentNodeId = devId;
+            let visitedNodes = new Set();
+            let safetyCounter = 0;
 
-            highlightCircle.bindPopup(`<b>🚀 Hulu Ditemukan:</b><br>${sourceDev.name} (${sourceDev.type})`).openPopup();
+            while (currentNodeId && safetyCounter < 20) {
+                safetyCounter++;
+                visitedNodes.add(currentNodeId);
+
+                let cableSegment = allCablesCache.find(c => {
+                    let sId = c.details?.sourceDevId;
+                    let dId = c.details?.destDevId;
+                    return (dId === currentNodeId && sId && !visitedNodes.has(sId)) || 
+                           (sId === currentNodeId && dId && !visitedNodes.has(dId));
+                });
+
+                if (cableSegment && cableSegment.points && cableSegment.points.length >= 2) {
+                    let pts = cableSegment.points;
+                    let cDev = allDevicesCache.find(d => d.id === currentNodeId);
+                    
+                    let startDist = Math.hypot(pts[0][0] - cDev.lat, pts[0][1] - cDev.lng);
+                    let endDist = Math.hypot(pts[pts.length - 1][0] - cDev.lat, pts[pts.length - 1][1] - cDev.lng);
+                    
+                    let orderedPts = startDist < endDist ? [...pts] : [...pts].reverse();
+
+                    if (fullRoutePoints.length === 0) {
+                        fullRoutePoints = orderedPts;
+                    } else {
+                        fullRoutePoints = fullRoutePoints.concat(orderedPts.slice(1));
+                    }
+
+                    let nextNodeId = (cableSegment.details.destDevId === currentNodeId) 
+                        ? cableSegment.details.sourceDevId 
+                        : cableSegment.details.destDevId;
+
+                    currentNodeId = nextNodeId;
+                    if (currentNodeId === targetSourceDevId) break;
+                } else {
+                    let cDev = allDevicesCache.find(d => d.id === currentNodeId);
+                    let nextCoreRelation = cDev?.details?.cores?.find(c => c.sourceDevId && !visitedNodes.has(c.sourceDevId));
+                    
+                    if (nextCoreRelation) {
+                        let fallbackCable = allCablesCache.find(c => {
+                            let pts = c.points;
+                            if (!pts || pts.length < 2) return false;
+                            let nextDev = allDevicesCache.find(d => d.id === nextCoreRelation.sourceDevId);
+                            let d1 = Math.hypot(pts[0][0] - cDev.lat, pts[0][1] - cDev.lng);
+                            let d2 = Math.hypot(pts[pts.length-1][0] - nextDev.lat, pts[pts.length-1][1] - nextDev.lng);
+                            let d3 = Math.hypot(pts[pts.length-1][0] - cDev.lat, pts[pts.length-1][1] - cDev.lng);
+                            let d4 = Math.hypot(pts[0][0] - nextDev.lat, pts[0][1] - nextDev.lng);
+                            return (d1 < 0.001 && d2 < 0.001) || (d3 < 0.001 && d4 < 0.001);
+                        });
+
+                        if (fallbackCable) {
+                            let pts = fallbackCable.points;
+                            let d1 = Math.hypot(pts[0][0] - cDev.lat, pts[0][1] - cDev.lng);
+                            let orderedPts = d1 < 0.001 ? [...pts] : [...pts].reverse();
+                            if (fullRoutePoints.length === 0) fullRoutePoints = orderedPts;
+                            else fullRoutePoints = fullRoutePoints.concat(orderedPts.slice(1));
+                        }
+
+                        currentNodeId = nextCoreRelation.sourceDevId;
+                        if (currentNodeId === targetSourceDevId) break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if (fullRoutePoints.length < 2) {
+                fullRoutePoints = [[currentDev.lat, currentDev.lng], [sourceDev.lat, sourceDev.lng]];
+            }
+
+            let highlightCircle = L.circleMarker([sourceDev.lat, sourceDev.lng], {
+                radius: 22,
+                color: colObj.hex,
+                weight: 5,
+                fillColor: colObj.hex,
+                fillOpacity: 0.5
+            }).addTo(highlightLayer);
+
+            let tracePolyline = L.polyline(fullRoutePoints, {
+                color: colObj.hex,
+                weight: 8,
+                opacity: 1.0,
+                dashArray: '15, 15',
+                className: 'animated-trace-line'
+            }).addTo(highlightLayer);
+
+            highlightCircle.bindPopup(`<b>🚀 Asal Hulu Ditemukan:</b><br>${sourceDev.name} (${sourceDev.type})<br>Warna Core: <b style="color:${colObj.hex}">${colObj.name}</b>`).openPopup();
             map.closePopup();
         }
 
         window.openEditModal = function(id) {
-            cancelEditCable(); cancelAddAtCoord();
+            cancelEditCable();
+            cancelAddAtCoord();
             const dev = allDevicesCache.find(d => d.id === id);
             if (!dev) return;
+
             document.getElementById('editId').value = dev.id;
             document.getElementById('editName').value = dev.name;
-            updateTypeDropdowns(); document.getElementById('editType').value = dev.type;
+            
+            updateTypeDropdowns();
+            document.getElementById('editType').value = dev.type;
+
             checkDeviceTypeForCoreEdit();
 
             const tbody = document.getElementById('coreTableBody');
             tbody.innerHTML = '';
+            
             if (dev.details && dev.details.cores) {
                 dev.details.cores.forEach(c => {
                     let textVal = c.coreText || `Tube ${c.tube || 1} - Core ${c.core || 1}`;
                     appendCoreRow(textVal, c.colorId, c.status, c.target, c.sourceDevId, dev.id);
                 });
             }
+
             document.getElementById('formEditContainer').style.display = 'block';
             map.closePopup();
         }
 
         window.openEditCableModal = function(cableId) {
-            cancelEdit(); cancelAddAtCoord();
+            cancelEdit();
+            cancelAddAtCoord();
             const cable = allCablesCache.find(c => c.id === cableId);
             if (!cable) return;
+
             document.getElementById('editCableId').value = cable.id;
             document.getElementById('editCableName').value = cable.name;
             document.getElementById('editCableColorId').value = cable.details && cable.details.colorId ? cable.details.colorId : 1;
+
             document.getElementById('formEditCableContainer').style.display = 'block';
             map.closePopup();
         }
@@ -825,36 +1059,78 @@
         window.checkDeviceTypeForCoreEdit = function() {
             const typeName = document.getElementById('editType').value;
             const dtConfig = deviceTypes.find(dt => dt.name === typeName);
-            document.getElementById('coreManagerSection').style.display = (dtConfig && dtConfig.hasCore) ? 'block' : 'none';
+            const coreSection = document.getElementById('coreManagerSection');
+            
+            if (dtConfig && dtConfig.hasCore) {
+                coreSection.style.display = 'block';
+            } else {
+                coreSection.style.display = 'none';
+            }
         }
 
         function appendCoreRow(coreText = 'Tube 1 - Core 1', colorId = 1, status = 'Active', target = '', sourceDevId = '', currentDevId = '') {
             const tbody = document.getElementById('coreTableBody');
             const row = document.createElement('tr');
             let colorOptions = foColors.map(col => `<option value="${col.id}" ${col.id == colorId ? 'selected' : ''}>${col.name}</option>`).join('');
+            
             let coreDevices = allDevicesCache.filter(d => d.id !== currentDevId && d.details && d.details.hasCore);
+            let selectedDevObj = coreDevices.find(d => d.id === sourceDevId);
+            let searchInitialText = selectedDevObj ? `${selectedDevObj.name} (${selectedDevObj.type})` : '';
+
             let devOptions = `<option value="">-- Tanpa Hulu --</option>` + coreDevices.map(d => `<option value="${d.id}" ${d.id == sourceDevId ? 'selected' : ''}>${d.name} (${d.type})</option>`).join('');
 
             row.innerHTML = `
-                <td><input type="text" class="core-text-val" value="${coreText}" style="width:100%; font-size:11px; padding:4px;"><select class="col-val" style="font-size:10px; width:100%;">${colorOptions}</select></td>
-                <td><select class="s-val" style="font-size:10px;"><option value="Active" ${status==='Active'?'selected':''}>Active</option><option value="Idle" ${status==='Idle'?'selected':''}>Idle</option></select><input type="text" class="tg-val" value="${target}" placeholder="Tujuan" style="font-size:10px; width:100%;"></td>
-                <td><select class="src-dev" style="font-size:10px; width:100%;">${devOptions}</select></td>
-                <td><button type="button" class="btn-danger" onclick="this.closest('tr').remove()" style="padding:4px 8px; font-size:10px;">X</button></td>
+                <td>
+                    <input type="text" class="core-text-val" value="${coreText}" placeholder="Cth: Tube 1 Core 1" style="width:100%; font-size:11px; padding:4px; margin-bottom:4px;">
+                    <select class="col-val" style="font-size:10px; width:100%;">${colorOptions}</select>
+                </td>
+                <td>
+                    <select class="s-val" style="font-size:10px; margin-bottom:2px;">
+                        <option value="Active" ${status==='Active'?'selected':''}>Active</option>
+                        <option value="Idle" ${status==='Idle'?'selected':''}>Idle</option>
+                        <option value="Broken" ${status==='Broken'?'selected':''}>Broken</option>
+                    </select>
+                    <input type="text" class="tg-val" value="${target}" placeholder="Tujuan" style="font-size:10px; width:100%;">
+                </td>
+                <td>
+                    <input type="text" class="search-source-input" placeholder="🔍 Cari Hulu..." value="${searchInitialText}" onkeyup="filterSourceDropdown(this)" style="width:100%;">
+                    <select class="src-dev" style="font-size:10px; width:100%;">${devOptions}</select>
+                </td>
+                <td><button type="button" class="btn-danger" onclick="this.closest('tr').remove()" style="padding:4px 8px; font-size:10px; margin:0;">X</button></td>
             `;
             tbody.appendChild(row);
         }
 
-        window.addCoreRow = function() { appendCoreRow('Tube 1 - Core 1', 1, 'Active', '', '', document.getElementById('editId').value); }
+        window.filterSourceDropdown = function(inputEl) {
+            let filter = inputEl.value.toLowerCase();
+            let selectEl = inputEl.nextElementSibling;
+            let options = selectEl.options;
+            
+            for (let i = 0; i < options.length; i++) {
+                let txt = options[i].text.toLowerCase();
+                if (txt.includes(filter) || options[i].value === "") {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        }
+
+        window.addCoreRow = function() {
+            const currentDevId = document.getElementById('editId').value;
+            appendCoreRow('Tube 1 - Core 1', 1, 'Active', '', '', currentDevId);
+        }
+
         function cancelEdit() { document.getElementById('formEditContainer').style.display = 'none'; }
         function cancelEditCable() { document.getElementById('formEditCableContainer').style.display = 'none'; }
 
         document.getElementById('editDeviceForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
             const id = document.getElementById('editId').value;
             const typeName = document.getElementById('editType').value;
             const dtConfig = deviceTypes.find(dt => dt.name === typeName);
             const hasCore = dtConfig ? dtConfig.hasCore : true;
+
             const rows = document.querySelectorAll('#coreTableBody tr');
             const cores = [];
             if (hasCore) {
@@ -872,19 +1148,32 @@
             fetch(`/api/devices/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: document.getElementById('editName').value, type: typeName, details: { hasCore, cores } })
-            }).then(res => res.json()).then(result => { if(result.success) { alert('Berhasil disimpan!'); cancelEdit(); loadData(); } });
+                body: JSON.stringify({ 
+                    name: document.getElementById('editName').value, 
+                    type: typeName, 
+                    details: { hasCore: hasCore, cores: cores } 
+                })
+            }).then(res => res.json()).then(result => {
+                if(result.success) { alert('Perubahan perangkat berhasil disimpan!'); cancelEdit(); loadData(); }
+            });
         });
 
         document.getElementById('editCableForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
             const id = document.getElementById('editCableId').value;
+            const name = document.getElementById('editCableName').value;
+            const colorId = document.getElementById('editCableColorId').value;
+
             fetch(`/api/cables/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: document.getElementById('editCableName').value, details: { colorId: document.getElementById('editCableColorId').value } })
-            }).then(res => res.json()).then(result => { if(result.success) { alert('Berhasil!'); cancelEditCable(); loadData(); } });
+                body: JSON.stringify({ 
+                    name: name, 
+                    details: { colorId: colorId } 
+                })
+            }).then(res => res.json()).then(result => {
+                if(result.success) { alert('Perubahan jalur kabel berhasil disimpan!'); cancelEditCable(); loadData(); }
+            });
         });
 
         function setupTraceDropdowns() {
@@ -903,22 +1192,33 @@
             if (!dev || !dev.details.cores) { selectCore.innerHTML = '<option value="">Tidak ada core</option>'; return; }
             selectCore.innerHTML = dev.details.cores.map((c, idx) => {
                 let colObj = foColors.find(col => col.id == c.colorId) || foColors[0];
-                return `<option value="${idx}">${c.coreText || 'Core'} (${colObj.name})</option>`;
+                let coreLabel = c.coreText || `Tube ${c.tube}-Core ${c.core}`;
+                return `<option value="${idx}">${coreLabel} (${colObj.name}) - ${c.status}</option>`;
             }).join('');
         }
 
         window.runCoreTraceManual = function() {
             const devId = document.getElementById('traceDeviceSelect').value;
             const coreIdx = document.getElementById('traceCoreSelect').value;
-            if (!devId || coreIdx === '') { alert('Pilih perangkat & core!'); return; }
-            panToSourceDevice(devId, coreIdx);
+            if (!devId || coreIdx === '') { alert('Pilih perangkat dan core terlebih dahulu!'); return; }
+
+            const dev = allDevicesCache.find(d => d.id === devId);
+            if (dev && dev.details.cores[coreIdx] && dev.details.cores[coreIdx].sourceDevId) {
+                panToSourceDevice(devId, coreIdx);
+            } else {
+                alert('Perangkat ini belum memiliki relasi hulu (sumber core) yang diatur pada matriks core-nya.');
+            }
         }
 
         document.getElementById('cableForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (currentUser?.role !== 'admin') { alert('Akses ditolak!'); return; }
-            if (finalRoutedCoordinates.length < 2) { alert('Rute belum terbentuk!'); return; }
+            if (finalRoutedCoordinates.length < 2) { alert('Rute jalur belum terbentuk! Klik setidaknya 2 titik di peta secara manual.'); return; }
             
+            const colorId = document.getElementById('cableColorIdVal').value;
+            const sourceDevId = document.getElementById('cableSourceDevIdVal').value;
+            const destDevId = document.getElementById('cableDestDevIdVal').value;
+            const coreText = document.getElementById('cableCoreTextVal').value;
+
             fetch('/api/cables', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -926,17 +1226,33 @@
                     name: document.getElementById('cableName').value, 
                     points: finalRoutedCoordinates, 
                     details: { 
-                        colorId: document.getElementById('cableColorIdVal').value,
-                        sourceDevId: document.getElementById('cableSourceDevIdVal').value,
-                        destDevId: document.getElementById('cableDestDevIdVal').value,
-                        coreText: document.getElementById('cableCoreTextVal').value
+                        colorId: colorId,
+                        sourceDevId: sourceDevId,
+                        destDevId: destDevId,
+                        coreText: coreText
                     } 
                 })
-            }).then(res => res.json()).then(result => { if(result.success) { alert('Kabel tersimpan!'); resetCurrentCable(); loadData(); } });
+            }).then(res => res.json()).then(result => {
+                if(result.success) { 
+                    alert('Jalur kabel manual berhasil disimpan ke peta!'); 
+                    resetCurrentCable();
+                    loadData(); 
+                }
+            });
+        });
+
+        document.getElementById('importForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('kmlFile', document.getElementById('kmlFile').files[0]);
+            fetch('/api/import-kml', { method: 'POST', body: formData }).then(res => res.json()).then(result => {
+                alert(result.message);
+                if(result.success) loadData();
+            });
         });
 
         function getHighAccuracyLocation() {
-            if (!navigator.geolocation) { alert('GPS tidak didukung.'); return; }
+            if (!navigator.geolocation) { alert('Geolocation tidak didukung.'); return; }
             navigator.geolocation.getCurrentPosition(
                 (pos) => { map.setView([pos.coords.latitude, pos.coords.longitude], 18); alert('Peta digeser ke lokasi GPS Anda!'); },
                 (err) => { alert('Gagal mendeteksi GPS.'); },
@@ -944,7 +1260,7 @@
             );
         }
 
-        checkAuthStatus();
+        loadData();
     </script>
 </body>
 </html>
