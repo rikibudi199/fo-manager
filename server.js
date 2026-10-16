@@ -16,15 +16,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Koneksi ke MongoDB Atlas Cloud
-const MONGODB_URI = process.env.MONGODB_URI;
+// --- MANAJEMEN KONEKSI MONGODB (SERVERLESS READY) ---
+let isConnected = false;
 
-mongoose.connect(MONGODB_URI)
-.then(async () => {
-    console.log('✅ Berhasil terhubung ke MongoDB Atlas Cloud!');
-    await createDefaultAdmin();
-})
-.catch(err => console.error('❌ Gagal terhubung ke MongoDB:', err));
+async function connectToDatabase() {
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return;
+    }
+    
+    try {
+        const db = await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+            bufferCommands: false
+        });
+        isConnected = db.connections[0].readyState;
+        console.log('✅ Berhasil terhubung ke MongoDB Atlas Cloud!');
+        await createDefaultAdmin();
+    } catch (err) {
+        console.error('❌ Gagal terhubung ke MongoDB:', err);
+    }
+}
+
+// Middleware wajib untuk memastikan koneksi database aktif pada setiap request
+app.use(async (req, res, next) => {
+    await connectToDatabase();
+    next();
+});
 
 // Skema Database
 const deviceSchema = new mongoose.Schema({
@@ -47,9 +64,9 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['admin', 'technician'], default: 'technician' }
 }, { timestamps: true });
 
-const Device = mongoose.model('Device', deviceSchema);
-const Cable = mongoose.model('Cable', cableSchema);
-const User = mongoose.model('User', userSchema);
+const Device = mongoose.models.Device || mongoose.model('Device', deviceSchema);
+const Cable = mongoose.models.Cable || mongoose.model('Cable', cableSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Otomatis Buat Akun Admin Default
 async function createDefaultAdmin() {
@@ -220,6 +237,11 @@ app.delete('/api/reset-map', verifyAdmin, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
-});
+// Ekspor modul untuk Vercel, dan jalankan server lokal jika diakses langsung
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
