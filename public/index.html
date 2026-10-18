@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FO Field Manager - Auth & Role Managed</title>
+    <title>FO Field Manager - Device Connection Summary Popup</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; }
@@ -30,6 +30,7 @@
             overflow-y: auto; 
             z-index: 1000; 
             height: 100%;
+            transition: transform 0.3s ease;
         }
         #map { 
             flex-grow: 1; 
@@ -87,7 +88,7 @@
             opacity: 0.15 !important;
         }
 
-        /* Tombol Toggle Sidebar khusus tampilan HP */
+        /* Tombol Ikon Menu Minimalis di Sebelah Kiri Atas Peta */
         #sidebarToggleBtn {
             display: none;
             position: absolute;
@@ -97,18 +98,20 @@
             background: #004080;
             color: white;
             border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 18px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            font-weight: bold;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Responsif untuk Layar HP (Lebar maks 768px) */
+        /* Responsif untuk Layar HP / Mobile */
         @media (max-width: 768px) {
             #sidebarToggleBtn {
-                display: block;
+                display: flex;
             }
             #sidebar {
                 position: absolute;
@@ -126,10 +129,8 @@
 </head>
 <body>
 
-    <!-- Tombol Hamburger untuk Buka/Tutup Menu di HP -->
-    <button id="sidebarToggleBtn" onclick="toggleSidebar()">☰ Menu</button>
+    <button id="sidebarToggleBtn" onclick="toggleSidebar()" title="Buka/Tutup Menu">☰</button>
 
-    <!-- Overlay Login -->
     <div id="loginOverlay" style="display: none;">
         <div class="login-box">
             <h2 style="color: #004080; margin-bottom: 15px; font-size: 18px; text-align: center;">🔒 Login FO Field Manager</h2>
@@ -212,7 +213,6 @@
                 <div id="traceResultArea" style="display: none;" class="trace-result"></div>
             </div>
 
-            <!-- Kontrol khusus Admin -->
             <div id="adminControls" style="display: none;">
                 <div id="formAddAtCoordContainer" class="section-box" style="display: none; border-color: #28a745;">
                     <h4 style="border-color: #28a745; color: #218838;">Tambah Perangkat di Titik Ini</h4>
@@ -400,9 +400,9 @@
             sidebar.classList.toggle('active');
             const btn = document.getElementById('sidebarToggleBtn');
             if (sidebar.classList.contains('active')) {
-                btn.innerHTML = '✕ Tutup Menu';
+                btn.innerHTML = '✕';
             } else {
-                btn.innerHTML = '☰ Menu';
+                btn.innerHTML = '☰';
             }
             setTimeout(() => { map.invalidateSize(); }, 300);
         }
@@ -882,6 +882,7 @@
                         group.forEach((dev, idx) => {
                             let isCoreDevice = dev.details && dev.details.hasCore !== undefined ? dev.details.hasCore : true;
                             
+                            // Info dari Hulu
                             let connectedCablesAsDest = (allCablesCache || []).filter(c => c.details && String(c.details.destDevId) === String(dev.id));
                             let destSummaryHTML = '';
                             if (connectedCablesAsDest.length > 0) {
@@ -895,12 +896,13 @@
                                 
                                 let destTextList = Object.keys(groupedDest).map(srcName => {
                                     let cores = groupedDest[srcName];
-                                    return `<b>${srcName}</b> (Menghubungkan ${cores.length} Core: ${cores.join(', ')})`;
+                                    return `<b>${srcName}</b> (Core: ${cores.join(', ')})`;
                                 }).join('<br>');
                                 
                                 destSummaryHTML = `<div class="connection-summary"><b>🔗 Terhubung dari Hulu:</b><br>${destTextList}</div>`;
                             }
 
+                            // Info Menyalurkan ke Hilir (Menyertakan Detail Core/Tube)
                             let connectedCablesAsSource = (allCablesCache || []).filter(c => c.details && String(c.details.sourceDevId) === String(dev.id));
                             let sourceSummaryHTML = '';
                             if (connectedCablesAsSource.length > 0) {
@@ -914,7 +916,7 @@
 
                                 let sourceTextList = Object.keys(groupedSource).map(destName => {
                                     let cores = groupedSource[destName];
-                                    return `<b>${destName}</b> (${cores.length} Core tersambung)`;
+                                    return `<b>${destName}</b> (Core: ${cores.join(', ')})`;
                                 }).join('<br>');
 
                                 sourceSummaryHTML = `<div class="connection-summary" style="border-left-color: #28a745;"><b>🚀 Menyalurkan ke Hilir:</b><br>${sourceTextList}</div>`;
@@ -938,7 +940,7 @@
                                     let traceBtn = c.sourceDevId ? ` <button onclick="panToSourceDevice('${dev.id}', ${cIdx})" style="background:${colObj.hex}; color:white; border:none; padding:1px 3px; font-size:8px; cursor:pointer; border-radius:2px;">🔍 Lacak</button>` : '';
                                     
                                     return `<b>${tubeCoreLabel}</b> (<span style="color:${colObj.hex}; font-weight:bold;">● Warna: ${colObj.name}</span>): ${c.status}${sourceInfo}${traceBtn}`;
-                                }).join('<br>') || 'Belum ada data tube/core';
+                                }).join('<br>') || 'Belum ada data core';
                                 
                                 popupHTML += `<div style="font-size:10px; margin:4px 0;">${coreSummary}</div>`;
                                 popupHTML += destSummaryHTML;
