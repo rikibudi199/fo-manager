@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FO Field Manager - Device Connection Summary Popup</title>
+    <title>FO Field Manager - Fixed Edit Panel & Trace Routing</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; }
@@ -727,7 +727,6 @@
                         group.forEach((dev, idx) => {
                             let isCoreDevice = dev.details && dev.details.hasCore !== undefined ? dev.details.hasCore : true;
                             
-                            // Pindai kabel hilir yang terhubung ke perangkat ini
                             let connectedCablesAsDest = (allCablesCache || []).filter(c => c.details && c.details.destDevId === dev.id);
                             let destSummaryHTML = '';
                             if (connectedCablesAsDest.length > 0) {
@@ -747,7 +746,6 @@
                                 destSummaryHTML = `<div class="connection-summary"><b>🔗 Terhubung dari Hulu:</b><br>${destTextList}</div>`;
                             }
 
-                            // Pindai kabel hulu yang keluar dari perangkat ini ke perangkat lain
                             let connectedCablesAsSource = (allCablesCache || []).filter(c => c.details && c.details.sourceDevId === dev.id);
                             let sourceSummaryHTML = '';
                             if (connectedCablesAsSource.length > 0) {
@@ -1015,8 +1013,13 @@
         }
 
         window.openEditModal = function(id) {
+            // Sembunyikan panel lain agar panel edit perangkat muncul dengan jelas di sidebar kiri
             cancelEditCable();
             cancelAddAtCoord();
+            document.getElementById('formCableContainer').style.display = 'none';
+            document.getElementById('formTraceContainer').style.display = 'none';
+            document.getElementById('formCustomTypeContainer').style.display = 'none';
+
             const dev = allDevicesCache.find(d => d.id === id);
             if (!dev) return;
 
@@ -1043,8 +1046,13 @@
         }
 
         window.openEditCableModal = function(cableId) {
+            // Sembunyikan panel lain agar panel edit kabel muncul dengan jelas di sidebar kiri
             cancelEdit();
             cancelAddAtCoord();
+            document.getElementById('formCableContainer').style.display = 'none';
+            document.getElementById('formTraceContainer').style.display = 'none';
+            document.getElementById('formCustomTypeContainer').style.display = 'none';
+
             const cable = allCablesCache.find(c => c.id === cableId);
             if (!cable) return;
 
